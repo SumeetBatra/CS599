@@ -146,10 +146,10 @@ class UCBQLearner(QLearner):
         q_value = self.Q(state)[action]
         self._transition_buffer.add_transition(state, action, reward, next_state, terminated, trunc, q_value)
 
-    def compute_td_targets(self):
+    def compute_td_targets(self, next_state):
         episode_length = len(self._transition_buffer)
         values = self._transition_buffer.values_buffer[:episode_length]
-        next_value = max(self.Q(self._transition_buffer.next_state_buffer[episode_length - 1]))
+        next_value = max(self.Q(next_state))
         values = np.concatenate((values, np.array(next_value).reshape(1, -1)), axis=0)
         rewards = self._transition_buffer.reward_buffer[:episode_length]
         dones = self._transition_buffer.terminated_buffer[:episode_length]
@@ -172,9 +172,9 @@ class UCBQLearner(QLearner):
 
         self._transition_buffer.add_transition(state, action, reward, next_state, terminated, truncated, q_val)
 
-    def update(self):
+    def update(self, next_state):
         episode_length = len(self._transition_buffer)
-        TD_targets = self.compute_td_targets()
+        TD_targets = self.compute_td_targets(next_state)
         errors = TD_targets - self._transition_buffer.values_buffer[:episode_length]
         for i in range(episode_length):
             state, action = self._transition_buffer.state_buffer[i], self._transition_buffer.action_buffer[i]

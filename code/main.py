@@ -29,7 +29,7 @@ def episode(env, agent, nr_episode=0, train:bool = True):
         discounted_return += (discount_factor**time_step)*reward
         time_step += 1
     if train:
-        agent.update()
+        agent.update(state)
     print(nr_episode, ":", discounted_return)
     return discounted_return
 
@@ -43,7 +43,7 @@ def main():
     params["gamma"] = 0.99
     params["lambda"] = 0.8
     params["epsilon_decay"] = 0.01
-    params["alpha"] = 0.0001
+    params["alpha"] = 0.001
     params["env"] = env
     params['episode_length'] = env.time_limit
     params["explore_constant"] = np.sqrt(2)
@@ -52,7 +52,7 @@ def main():
     #agent = a.SARSALearner(params)
     # agent = a.QLearner(params)
     agent = a.UCBQLearner(params)
-    training_episodes = 400
+    training_episodes = 200
     test_episodes = 100
     train_returns = [episode(env, agent, i) for i in range(training_episodes)]
     agent.explore_constant = 0
