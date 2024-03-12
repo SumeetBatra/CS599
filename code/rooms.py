@@ -71,7 +71,7 @@ class RoomsEnv(gym.Env):
         
     def step_with_action(self, action):
         if self.terminated or self.truncated:
-            return self.agent_position, 0, self.terminated, self.truncated, self.state_summary()
+            return self.state(), 0, self.terminated, self.truncated, self.state_summary()
         self.time += 1
         self.state_history.append(self.state())
         x,y = self.agent_position

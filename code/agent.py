@@ -1,6 +1,7 @@
 import random
 import numpy as np
 from multi_armed_bandits import *
+from typing import Dict
 
 """
  Base class of an autonomously acting and learning agent.
@@ -91,3 +92,110 @@ class QLearner(TemporalDifferenceLearningAgent):
             TD_target += self.gamma*Q_next
         TD_error = TD_target - Q_old
         self.Q(state)[action] += self.alpha*TD_error
+
+
+class TransitionBuffer:
+    def __init__(self, episode_length: int, params: Dict):
+        self.idx = 0
+        self.state_shape = params['state_shape']
+        self.action_dim = params['nr_actions']
+        self.episode_length = episode_length
+        self.state_buffer = np.zeros((episode_length,) + self.state_shape)
+        self.action_buffer = np.zeros((episode_length, self.action_dim))
+        self.next_state_buffer = np.zeros((episode_length,) + self.state_shape)
+        self.reward_buffer = np.zeros((episode_length, 1))
+        self.terminated_buffer = np.zeros((self.episode_length, 1))
+        self.truncated_buffer = np.zeros((self.episode_length, 1))
+        self.values_buffer = np.zeros((self.episode_length, 1))
+
+    def add_transition(self, state, action, reward, next_state, terminated, trunc, value):
+        self.state_buffer[self.idx] = state
+        self.action_buffer[self.idx] = action
+        self.next_state_buffer[self.idx] = next_state
+        self.reward_buffer[self.idx] = reward
+        self.terminated_buffer[self.idx] = terminated
+        self.truncated_buffer[self.idx] = trunc
+        self.values_buffer[self.idx] = value
+        self.idx += 1
+
+    def __len__(self):
+        return self.idx
+
+    def reset(self):
+        self.state_buffer = np.zeros((self.episode_length,) + self.state_shape)
+        self.action_buffer = np.zeros((self.episode_length, 1))
+        self.next_state_buffer = np.zeros((self.episode_length,) + self.state_shape)
+        self.reward_buffer = np.zeros((self.episode_length, 1))
+        self.terminated_buffer = np.zeros((self.episode_length, 1))
+        self.truncated_buffer = np.zeros((self.episode_length, 1))
+        self.values_buffer = np.zeros((self.episode_length, 1))
+        self.idx = 0
+
+
+class UCBQLearner(QLearner):
+    def __init__(self, params):
+        super(UCBQLearner, self).__init__(params)
+        self.action_counts = {}
+        self.explore_constant = params['explore_constant']
+        self.ep_len = params['episode_length']
+        self.state_shape = params['state_shape']
+        self.lambda_ = params['lambda']
+        self._transition_buffer = TransitionBuffer(self.ep_len, params)
+
+    def add_transition(self, state, action, reward, next_state, terminated, trunc):
+        q_value = self.Q(state)[action]
+        self._transition_buffer.add_transition(state, action, reward, next_state, terminated, trunc, q_value)
+
+    def compute_td_targets(self):
+        episode_length = len(self._transition_buffer)
+        values = self._transition_buffer.values_buffer[:episode_length]
+        next_value = max(self.Q(self._transition_buffer.next_state_buffer[episode_length - 1]))
+        values = np.concatenate((values, np.array(next_value).reshape(1, -1)), axis=0)
+        rewards = self._transition_buffer.reward_buffer[:episode_length]
+        dones = self._transition_buffer.terminated_buffer[:episode_length]
+
+        deltas = rewards + (1 - dones) * (self.gamma * values[1:])
+        cumulative = 0
+        returns = np.zeros_like(deltas)
+        i = episode_length - 1
+        while i >= 0:
+            cumulative = deltas[i] + (self.lambda_ * self.gamma) * cumulative * (1.0 - dones[i])
+            returns[i] = cumulative
+            i -= 1
+
+        return returns
+
+    def add_experience(self, state, action, reward, next_state, terminated, truncated):
+        q_val = self.Q(state)[action]
+
+        self.update_visits(state, action)
+
+        self._transition_buffer.add_transition(state, action, reward, next_state, terminated, truncated, q_val)
+
+    def update(self):
+        episode_length = len(self._transition_buffer)
+        TD_targets = self.compute_td_targets()
+        errors = TD_targets - self._transition_buffer.values_buffer[:episode_length]
+        for i in range(episode_length):
+            state, action = self._transition_buffer.state_buffer[i], self._transition_buffer.action_buffer[i]
+            self.Q(state)[int(action)] += self.alpha * errors[i].flatten()
+
+    def reset_buffer(self):
+        self._transition_buffer.reset()
+
+    def policy(self, state):
+        Q_values = self.Q(state)
+        action_counts = self.visit_count(state)
+        return UCB1(Q_values, action_counts, exploration_constant=self.explore_constant)
+
+    def visit_count(self, state):
+        state = np.array2string(state)
+        if state not in self.action_counts:
+            self.action_counts[state] = np.zeros(self.nr_actions)
+        return self.action_counts[state]
+
+    def update_visits(self, state, action):
+        state = np.array2string(state)
+        if state not in self.action_counts:
+            self.action_counts[state] = np.zeros(self.nr_actions)
+        self.action_counts[state][action] += 1
