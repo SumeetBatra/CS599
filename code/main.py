@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-
+import argparse
 import rooms
 import agent as a
 import matplotlib.pyplot as plot
@@ -12,7 +12,18 @@ import pandas as pd
 from typing import List
 
 
-def episode(env, agent, nr_episode=0, train:bool = True):
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--rooms_instance', type=str)
+    parser.add_argument('--exploration_strategy', type=str, choices=['greedy', 'ucb'])
+    parser.add_argument('--use_td_lambda', action='store_true')
+    parser.add_argument('--lr', type=float, default=0.1)
+    parser.add_argument('--train_steps', type=int, default=800)
+    args = parser.parse_args()
+    return args
+
+
+def episode(env, agent, nr_episode=0, train: bool = True):
     state = env.reset()
     agent.reset_buffer()
     discounted_return = 0
@@ -24,17 +35,24 @@ def episode(env, agent, nr_episode=0, train:bool = True):
         action = agent.policy(state)
         # 2. Execute selected action
         next_state, reward, terminated, truncated, _ = env.step(action)
-        # 3. Integrate new experience into agent
-        # agent.update(state, action, reward, next_state, terminated, truncated)
+
         if train:
+            if agent.use_td_lambda:
+                # store transition to compute n-step return target at the end
+                agent.add_transition(state, action, reward, next_state, terminated, truncated)
+            else:
+                # 1-step return, so we can update the q-function right away
+                agent.update(state, action, reward, next_state, terminated, truncated)
             agent.update_visits(state, action)
-            agent.add_transition(state, action, reward, next_state, terminated, truncated)
+
         state = next_state
         done = terminated or truncated
         discounted_return += (discount_factor**time_step)*reward
         time_step += 1
-    if train:
-        agent.update(state)
+
+    if train and agent.use_td_lambda:
+        # compute n-step return and update Q values
+        agent.update_td_lambda(state)
     print(nr_episode, ":", discounted_return)
     return discounted_return
 
@@ -75,31 +93,32 @@ def plot_results(easy_data: pd.DataFrame, hard_data: pd.DataFrame):
     sns.lineplot(easy_data, x='Episode', y='Return', errorbar=('ci', 95), ax=axs[0])
     sns.lineplot(hard_data, x='Episode', y='Return', errorbar=('ci', 95), ax=axs[1])
 
-    axs[0].set_title(f'Evaluation Easy 0')
-    axs[1].set_title(f'Evaluation Hard 0')
+    axs[0].set_title(f'Evaluation Medium 0')
+    axs[1].set_title(f'Evaluation Medium 1')
     plot.show()
 
 
 def main():
     params = {}
-    rooms_instance = sys.argv[1]
+    args = parse_args()
+    rooms_instance = args.rooms_instance
     env = rooms.load_env(f"layouts/{rooms_instance}.txt", f"{rooms_instance}.mp4")
     params["nr_actions"] = env.action_space.n
     params['state_shape'] = env.observation_space.shape
     params["gamma"] = 0.99
     params["lambda"] = 0.8
     params["epsilon_decay"] = 0.01
-    params["alpha"] = 0.001
+    params["alpha"] = args.lr
     params["env"] = env
     params['episode_length'] = env.time_limit
     params["explore_constant"] = np.sqrt(2)
+    params["use_td_lambda"] = args.use_td_lambda
+    params["exploration_strategy"] = args.exploration_strategy
 
-    #agent = a.RandomAgent(params)
-    #agent = a.SARSALearner(params)
-    # agent = a.QLearner(params)
-    agent = a.UCBQLearner(params)
-    training_episodes = 1000
-    test_episodes = 10
+    agent = a.AdvancedQLearner(params)
+
+    training_episodes = args.train_steps
+    test_episodes = 100
     train_returns = [episode(env, agent, i) for i in range(training_episodes)]
     agent.explore_constant = 0
     agent.epsilon = 0
@@ -116,12 +135,12 @@ def main():
 
     env.save_video()
 
-    with open(f'agent_{rooms_instance}_{training_episodes}.pkl', 'wb') as f:
+    with open(f'agent_{rooms_instance}_{args.exploration_strategy}_use_td_lambda_{args.use_td_lambda}_{training_episodes}.pkl', 'wb') as f:
         pickle.dump(agent, f)
 
 
 if __name__ == '__main__':
-    easy_data = evaluate('agent_easy_0_200.pkl', 'easy_0')
-    hard_data = evaluate('agent_hard_0_1000.pkl', 'hard_0')
-    plot_results(easy_data, hard_data)
+    hard0_data = evaluate('agent_hard_0_ucb_use_td_lambda_True_800.pkl', 'hard_0')
+    hard1_data = evaluate('agent_hard_1_ucb_use_td_lambda_True_800.pkl', 'hard_0')
+    plot_results(hard0_data, hard1_data)
     # main()

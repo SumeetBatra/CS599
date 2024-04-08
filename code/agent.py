@@ -132,15 +132,18 @@ class TransitionBuffer:
         self.idx = 0
 
 
-class UCBQLearner(QLearner):
+class AdvancedQLearner(QLearner):
     def __init__(self, params):
-        super(UCBQLearner, self).__init__(params)
+        super(AdvancedQLearner, self).__init__(params)
         self.action_counts = {}
         self.explore_constant = params['explore_constant']
         self.ep_len = params['episode_length']
         self.state_shape = params['state_shape']
         self.lambda_ = params['lambda']
+        self.use_td_lambda = params['use_td_lambda']
+        # only used for n-step returns
         self._transition_buffer = TransitionBuffer(self.ep_len, params)
+        self.exploration_strategy = params['exploration_strategy']
 
     def add_transition(self, state, action, reward, next_state, terminated, trunc):
         q_value = self.Q(state)[action]
@@ -157,7 +160,7 @@ class UCBQLearner(QLearner):
         deltas = rewards + (1 - dones) * (self.gamma * values[1:])
         cumulative = 0
         returns = np.zeros_like(deltas)
-        i = episode_length - 1
+        i = len(deltas) - 1
         while i >= 0:
             cumulative = deltas[i] + (self.lambda_ * self.gamma) * cumulative * (1.0 - dones[i])
             returns[i] = cumulative
@@ -172,7 +175,7 @@ class UCBQLearner(QLearner):
 
         self._transition_buffer.add_transition(state, action, reward, next_state, terminated, truncated, q_val)
 
-    def update(self, next_state):
+    def update_td_lambda(self, next_state):
         episode_length = len(self._transition_buffer)
         TD_targets = self.compute_td_targets(next_state)
         errors = TD_targets - self._transition_buffer.values_buffer[:episode_length]
@@ -185,8 +188,12 @@ class UCBQLearner(QLearner):
 
     def policy(self, state):
         Q_values = self.Q(state)
-        action_counts = self.visit_count(state)
-        return UCB1(Q_values, action_counts, exploration_constant=self.explore_constant)
+        if self.exploration_strategy == 'ucb':
+            action_counts = self.visit_count(state)
+            action = UCB1(Q_values, action_counts, exploration_constant=self.explore_constant)
+        else:
+            action = QLearner.policy(self, state)
+        return action
 
     def visit_count(self, state):
         state = np.array2string(state)
