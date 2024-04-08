@@ -2,3 +2,4 @@ gymnasium==0.29.1
 matplotlib==3.7.0
 moviepy==1.0.3
 numpy==1.23.5
+seaborn==0.13.2

@@ -1,3 +1,4 @@
+import matplotlib
 import matplotlib.pyplot as plt
 import argparse
 import rooms
@@ -10,6 +11,8 @@ import pickle
 import pandas as pd
 
 from typing import List
+
+matplotlib.use('TkAgg')
 
 
 def parse_args():
@@ -58,17 +61,7 @@ def episode(env, agent, nr_episode=0, train: bool = True):
 
 
 def evaluate(agent_fp: str, rooms_instance: str, n_trials: int = 20, n_eval_episodes: int = 10):
-    params = {}
     env = rooms.load_env(f"layouts/{rooms_instance}.txt", f"{rooms_instance}.mp4")
-    params["nr_actions"] = env.action_space.n
-    params['state_shape'] = env.observation_space.shape
-    params["gamma"] = 0.99
-    params["lambda"] = 0.8
-    params["epsilon_decay"] = 0.01
-    params["alpha"] = 0.001
-    params["env"] = env
-    params['episode_length'] = env.time_limit
-    params["explore_constant"] = np.sqrt(2)
 
     with open(agent_fp, 'rb') as f:
         agent = pickle.load(f)
@@ -88,13 +81,13 @@ def evaluate(agent_fp: str, rooms_instance: str, n_trials: int = 20, n_eval_epis
     return df
 
 
-def plot_results(easy_data: pd.DataFrame, hard_data: pd.DataFrame):
+def plot_results(df1: pd.DataFrame, df2: pd.DataFrame):
     fig, axs = plt.subplots(1, 2, figsize=(10, 4))
-    sns.lineplot(easy_data, x='Episode', y='Return', errorbar=('ci', 95), ax=axs[0])
-    sns.lineplot(hard_data, x='Episode', y='Return', errorbar=('ci', 95), ax=axs[1])
+    sns.lineplot(df1, x='Episode', y='Return', errorbar=('ci', 95), ax=axs[0])
+    sns.lineplot(df2, x='Episode', y='Return', errorbar=('ci', 95), ax=axs[1])
 
-    axs[0].set_title(f'Evaluation Medium 0')
-    axs[1].set_title(f'Evaluation Medium 1')
+    axs[0].set_title(f'Evaluation Hard 0')
+    axs[1].set_title(f'Evaluation Hard 1')
     plot.show()
 
 
@@ -140,7 +133,7 @@ def main():
 
 
 if __name__ == '__main__':
-    hard0_data = evaluate('agent_hard_0_ucb_use_td_lambda_True_800.pkl', 'hard_0')
-    hard1_data = evaluate('agent_hard_1_ucb_use_td_lambda_True_800.pkl', 'hard_0')
+    hard0_data = evaluate('agent_hard_0_ucb_use_td_lambda_False_800.pkl', 'hard_0')
+    hard1_data = evaluate('agent_hard_1_ucb_use_td_lambda_False_800.pkl', 'hard_1')
     plot_results(hard0_data, hard1_data)
     # main()
