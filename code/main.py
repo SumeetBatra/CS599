@@ -12,8 +12,6 @@ import pandas as pd
 
 from typing import List
 
-matplotlib.use('TkAgg')
-
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -91,6 +89,30 @@ def plot_results(df1: pd.DataFrame, df2: pd.DataFrame):
     plot.show()
 
 
+def ablation():
+    agent_fps = {
+        'greedy_1step': 'agent_hard_0_greedy_use_td_lambda_False_800.pkl',
+        'ucb_1step': 'agent_hard_0_ucb_use_td_lambda_False_800.pkl',
+        'greedy_nstep': 'agent_hard_0_greedy_use_td_lambda_True_800.pkl',
+        'ucb_nstep': 'agent_hard_0_ucb_use_td_lambda_True_800.pkl',
+    }
+
+    names, all_data = [], []
+    for name, fp in agent_fps.items():
+        eval_data = evaluate(agent_fp=fp, rooms_instance='hard_0', n_trials=20)
+        all_data.append(eval_data)
+        names.append(name)
+
+    # plot the results in a 2x2
+    fig, axs = plt.subplots(4, 1, figsize=(10, 8))
+    axs = axs.flatten()
+    for i, (name, df) in enumerate(zip(names, all_data)):
+        sns.lineplot(df, x='Episode', y='Return', ax=axs[i])
+        axs[i].set_title(name.upper())
+    fig.tight_layout()
+    plt.show()
+
+
 def main():
     params = {}
     args = parse_args()
@@ -133,7 +155,8 @@ def main():
 
 
 if __name__ == '__main__':
-    hard0_data = evaluate('agent_hard_0_ucb_use_td_lambda_False_800.pkl', 'hard_0')
-    hard1_data = evaluate('agent_hard_1_ucb_use_td_lambda_False_800.pkl', 'hard_1')
-    plot_results(hard0_data, hard1_data)
+    # hard0_data = evaluate('agent_hard_0_ucb_use_td_lambda_False_800.pkl', 'hard_0')
+    # hard1_data = evaluate('agent_hard_1_ucb_use_td_lambda_False_800.pkl', 'hard_1')
+    # plot_results(hard0_data, hard1_data)
     # main()
+    ablation()
