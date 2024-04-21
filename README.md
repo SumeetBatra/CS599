@@ -17,6 +17,10 @@ The file `main.py` contains 3 methods: `plot_all_results()`,
 `main()`, and `ablation()`. Please uncomment the method you wish to run.
 
 ### Experiments
+Our agent is defined as the class `AdvancedQLearner`. This agent is capable of different combinations of using UCB1
+or epsilon-greedy exploration, and TD(Lambda) or TD(1) for return targets. For the results presented in the fianl report,
+we use TD(1) targets and UCB1.
+
 The `main()` method is used to run experiments that train the agents. This method
 uses the command line arguments defined at the top of the file to specify hyperparameters. 
 For example, to train an Q-Learning agent with UCB1 for exploration and single-step returns on hard_0, 
