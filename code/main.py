@@ -176,10 +176,10 @@ def main():
 
 if __name__ == '__main__':
     # uncomment this to plot all results.
-    plot_all_results()
+    # plot_all_results()
 
     # uncomment this to run a main experiment using the cmd line args from the argumentparser
-    # main()
+    main()
 
     # to run the ablation results presented in intermediate report 2, please uncomment this line.
     # ablation()
