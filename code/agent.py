@@ -150,6 +150,7 @@ class AdvancedQLearner(QLearner):
         self._transition_buffer.add_transition(state, action, reward, next_state, terminated, trunc, q_value)
 
     def compute_td_targets(self, next_state):
+        # compute td(lambda) return targets
         episode_length = len(self._transition_buffer)
         values = self._transition_buffer.values_buffer[:episode_length]
         next_value = max(self.Q(next_state))
@@ -196,12 +197,14 @@ class AdvancedQLearner(QLearner):
         return action
 
     def visit_count(self, state):
+        # For UCB1
         state = np.array2string(state)
         if state not in self.action_counts:
             self.action_counts[state] = np.zeros(self.nr_actions)
         return self.action_counts[state]
 
     def update_visits(self, state, action):
+        # For UCB1
         state = np.array2string(state)
         if state not in self.action_counts:
             self.action_counts[state] = np.zeros(self.nr_actions)

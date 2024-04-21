@@ -1,4 +1,4 @@
-# Autonomous Decision-Making
+# CS599 Final Project 
 
 ## Setup
 
@@ -12,24 +12,27 @@ cd code
 pip install -r requirements.txt
 ```
 
-## Available Maps
+### Usage
+The file `main.py` contains 3 methods: `plot_all_results()`, 
+`main()`, and `ablation()`. Please uncomment the method you wish to run.
 
-All available maps are provided in the folder `code/layouts` and listed in the table below.
+### Experiments
+The `main()` method is used to run experiments that train the agents. This method
+uses the command line arguments defined at the top of the file to specify hyperparameters. 
+For example, to train an Q-Learning agent with UCB1 for exploration and single-step returns on hard_0, 
+run the following command from the `code/` directory: 
 
-| Map   		| File                      |
-|---------------|---------------------------|
-| `easy_0`      | `code/layouts/easy_0.txt` |
-| `easy_1`      | `code/layouts/easy_1.txt` |
-| `medium_0`    | `code/layouts/medium_0.txt` |
-| `medium_1`    | `code/layouts/medium_1.txt` |
-| `hard_0`      | `code/layouts/hard_0.txt` |
-| `hard_1`      | `code/layouts/hard_1.txt` |
-
-
-## Usage
-
-Run agent using the following commands in a terminal (`map-name` is provided in the "Map"-column of the table above):
+```python
+python -m main --rooms_instance=hard_0 --exploration_strategy='ucb' --lr=0.1 --train_steps=500
 ```
-cd code
-python main.py <map-name>
-```
+
+Please see the `parse_args()` function in `main.py` for a full list of command line arguments. Other hyperparameters such 
+as the exploration constant and discount factor are set directly in the `main()` method.
+
+### Ablation
+To run the ablation presented in the 2nd intermediate project report, please uncomment the `ablation()` method call and 
+comment out the other two methods. Ignores all cmd-line args.
+
+### Plotting Results
+To visualize the results presented in the final project report, please uncomment `plot_all_results()` and comment out 
+the other two methods. Ignores all cmd-line args.

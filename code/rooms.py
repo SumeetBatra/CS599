@@ -22,8 +22,8 @@ NR_CHANNELS = len([AGENT_CHANNEL,GOAL_CHANNEL,OBSTACLE_CHANNEL])
 
 class RoomsEnv(gym.Env):
 
-    def __init__(self, width, height, obstacles, time_limit, stochastic=None, movie_filename=None):
-        self.seed()
+    def __init__(self, width, height, obstacles, time_limit, stochastic=None, movie_filename=None, seed=None):
+        self.seed(seed=seed)
         self.movie_filename = movie_filename
         self.action_space = spaces.Discrete(len(ROOMS_ACTIONS))
         self.observation_space = spaces.Box(-numpy.inf, numpy.inf, shape=(NR_CHANNELS,width,height))
@@ -147,6 +147,6 @@ def read_map_file(path):
     height += 1
     return width, height, obstacles
 
-def load_env(path, movie_filename, time_limit=100, stochastic=None):
+def load_env(path, movie_filename, time_limit=100, stochastic=None, seed=None):
     width, height, obstacles = read_map_file(path)
-    return RoomsEnv(width, height, obstacles, time_limit, stochastic, movie_filename)
+    return RoomsEnv(width, height, obstacles, time_limit, stochastic, movie_filename, seed=seed)
