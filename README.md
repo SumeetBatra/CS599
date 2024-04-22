@@ -40,3 +40,9 @@ comment out the other two methods. Ignores all cmd-line args.
 ### Plotting Results
 To visualize the results presented in the final project report, please uncomment `plot_all_results()` and comment out 
 the other two methods. Ignores all cmd-line args.
+
+
+### Hardware
+Code was tested on a desktop running Ubuntu 20.04 LTS with a Ryzen 7900X, RTX 3090 GPU, and 64GB of memory. The minimum hardware
+requirements are any machine with a CPU and sufficient memory. Dedicated NVIDIA GPU is not required. The seed is set randomly
+upon environment initialization. However, any fixed seed will work as well. 
